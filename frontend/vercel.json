@@ -2,7 +2,15 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://thriftshop-polinela-3d-in72.vercel.app/api/:path*"
+      "destination": "https://thriftshop-polinela-3d.vercel.app/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://thriftshop-polinela-3d.vercel.app/uploads/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
