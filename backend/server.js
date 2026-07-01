@@ -24,25 +24,34 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Konfigurasi Manajemen File Gambar (Multer)
-// Vercel hanya mengizinkan tulis file di folder /tmp
-const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production';
-const uploadDir = isVercel ? path.join('/tmp', 'uploads') : path.join(__dirname, 'uploads');
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-app.use('/uploads', express.static(uploadDir));
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
+// Konfigurasi Manajemen File Gambar (Multer) dengan Memory Storage untuk diteruskan ke Supabase Storage
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
+
+// Fungsi utilitas untuk upload ke Supabase Storage
+async function uploadToSupabase(file) {
+  const supabase = getSupabaseClient();
+  const fileExt = file.originalname.split('.').pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+  
+  const { data, error } = await supabase.storage
+    .from('products')
+    .upload(fileName, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+
+  if (error) {
+    console.error('Supabase upload error:', error);
+    throw new Error('Gagal mengunggah gambar ke Supabase Storage: ' + error.message);
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from('products')
+    .getPublicUrl(fileName);
+
+  return publicUrlData.publicUrl;
+}
 
 // Hubungkan ke Database MongoDB Cloud Atlas
 initDb();
@@ -72,7 +81,12 @@ app.get('/api/products', async (req, res) => {
 app.post('/api/products', upload.single('image'), async (req, res) => {
   try {
     const { name, price, description, size, stock, category, image_url } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : (image_url || '');
+    let imageUrl = image_url || '';
+    
+    if (req.file) {
+      imageUrl = await uploadToSupabase(req.file);
+    }
+    
     const supabase = getSupabaseClient();
 
     const newProduct = {
@@ -117,7 +131,7 @@ app.put('/api/products/:id', upload.single('image'), async (req, res) => {
     };
 
     if (req.file) {
-      updateData.image_url = `/uploads/${req.file.filename}`;
+      updateData.image_url = await uploadToSupabase(req.file);
     } else if (req.body.image_url) {
       updateData.image_url = req.body.image_url;
     }
