@@ -1,0 +1,14 @@
+{
+  "name": "thriftshop-polinela",
+  "version": "1.0.0",
+  "description": "Thriftshop Polinela 3D Web Application",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend && npm install",
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "start": "npm run dev"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
