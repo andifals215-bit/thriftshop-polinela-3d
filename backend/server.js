@@ -25,9 +25,12 @@ app.use(cors());
 app.use(express.json());
 
 // Konfigurasi Manajemen File Gambar (Multer)
-const uploadDir = path.join(__dirname, 'uploads');
+// Vercel hanya mengizinkan tulis file di folder /tmp
+const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production';
+const uploadDir = isVercel ? path.join('/tmp', 'uploads') : path.join(__dirname, 'uploads');
+
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 app.use('/uploads', express.static(uploadDir));
 
