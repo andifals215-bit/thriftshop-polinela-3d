@@ -468,10 +468,10 @@ app.get('/api/db-status', async (req, res) => {
   }
 });
 
-// 11. IMAGE UPLOAD: Upload gambar produk
+// 11. IMAGE UPLOAD: Upload gambar produk ke Supabase Storage
 app.post('/api/upload', upload.single('image'), async (req, res) => {
   try {
-    // Verify token (optional, but recommended for security)
+    // Verify token
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ message: 'Token tidak ditemukan' });
@@ -481,14 +481,14 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
       return res.status(400).json({ message: 'Tidak ada file yang diupload' });
     }
 
-    const imageUrl = `/uploads/${req.file.filename}`;
+    const imageUrl = await uploadToSupabase(req.file);
     res.json({
       message: 'Gambar berhasil diupload',
       url: imageUrl
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ message: 'Gagal mengupload gambar' });
+    res.status(500).json({ message: 'Gagal mengupload gambar: ' + error.message });
   }
 });
 
